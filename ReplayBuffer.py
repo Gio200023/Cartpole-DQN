@@ -7,7 +7,7 @@ from collections import namedtuple, deque
 from itertools import count
 
 Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
+                        ('state', 'action', 'reward', 'next_state','done'))
 
 
 class ReplayMemory(object):
