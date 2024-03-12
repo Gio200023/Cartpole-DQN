@@ -10,6 +10,10 @@ import numpy as np
 from Helper import softmax, argmax
 from collections import deque
 import random
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
 # from tensorflow.keras import models, layers, optimizers
 
 class DQNAgent:
@@ -23,7 +27,7 @@ class DQNAgent:
     Returns:
         int: best action according to the policy
     """
-    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon=0.05, epsilon_decay=0.995, epsilon_min=0.01):
+    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon=0.05, epsilon_decay=0.995, epsilon_min=0.01, temp=0.05):
         self.n_states = n_states
         self.n_actions = n_actions
         self.memory = deque(maxlen=2000) 
@@ -34,6 +38,8 @@ class DQNAgent:
         self.learning_rate = learning_rate
         self.Q_sa = np.zeros((n_states,n_actions))
         self.model = self.build_model()
+        
+        print("DQNagent initialized with nr states: "+ str(n_states) + " and nr actions: " + str(n_actions))
         
     def select_action(self, s, policy='egreedy', epsilon=None, temp=None):
         if policy == 'greedy':
@@ -62,13 +68,23 @@ class DQNAgent:
             return a
 
     def build_model(self):
-        # Costruzione della rete neurale
-        model = models.Sequential()
-        model.add(layers.Dense(24, input_dim=self.state_size, activation='relu'))
-        model.add(layers.Dense(24, activation='relu'))
-        model.add(layers.Dense(self.action_size, activation='linear'))
-        model.compile(loss='mse', optimizer=optimizers.Adam(lr=self.learning_rate))
-        return model
+        """Build neural network model
+        
+           In effect, the network is trying to predict the expected return 
+           of taking each action given the current input.
+        """
+        # if GPU is to be used
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        super(DQNAgent, self).__init__()
+        self.layer1 = nn.Linear(self.n_states, 128)
+        self.layer2 = nn.Linear(128, 128)
+        self.layer3 = nn.Linear(128, self.n_actions)
+
+    def forward(self, x):
+        x = F.relu(self.layer1(x))
+        x = F.relu(self.layer2(x))
+        return self.layer3(x)
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
