@@ -14,16 +14,17 @@ import torch.nn.functional as F
 env = gym.make("CartPole-v1")
 
 # set up matplotlib
-is_ipython = 'inline' in matplotlib.get_backend()
-if is_ipython:
-    from IPython import display
+# is_ipython = 'inline' in matplotlib.get_backend()
+# if is_ipython:
+#     from IPython import display
 
-plt.ion()
+# plt.ion()
 
 # if GPU is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class DQN(nn.Module):
+
 
     def __init__(self, n_observations, n_actions):
         super(DQN, self).__init__()
