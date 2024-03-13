@@ -62,18 +62,6 @@ class DQNAgent(nn.Module):
                 q_values = self.forward(state)
                 return q_values.argmax().item()  # Return the action with the highest Q-value
 
-    def build_model(self):
-        """Build neural network model
-        
-           In effect, the network is trying to predict the expected return 
-           of taking each action given the current input.
-        """
-        # if GPU is to be used
-        # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.layer1 = nn.Linear(self.n_states, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, self.n_actions)
-
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
@@ -120,19 +108,19 @@ class DQNAgent(nn.Module):
         loss.backward()  # Backpropagation
         self.optimizer.step()  # Update weights
         
-    def evaluate(self,eval_env,n_eval_episodes=30, max_episode_length=100):
+    def evaluate(self,eval_env,n_eval_episodes=30, max_episode_length=100, epsilon = 0.05,temp = 0.05):
         returns = []  # list to store the reward per episode
         for i in range(n_eval_episodes):
-            s = eval_env.reset()
+            s , info= eval_env.reset()
             R_ep = 0
             for t in range(max_episode_length):
-                a = self.select_action(s, 'greedy')
-                s_prime, r, done = eval_env.step(a)
-                R_ep += r
-                if done:
+                a = self.select_action(s, 'greedy', epsilon=epsilon, temp=temp)
+                observation, reward, terminated, truncated, info = eval_env.step(a)
+                R_ep += reward
+                if terminated:
                     break
                 else:
-                    s = s_prime
+                    s = observation
             returns.append(R_ep)
         mean_return = np.mean(returns)
         return mean_return
