@@ -11,6 +11,12 @@ Transition = namedtuple('Transition',
 
 
 class ReplayMemory(object):
+    """Replay Memory class for the replay buffer
+
+        Functions:
+        sample: sample a batch of transitions
+        push: save a transition
+    """
 
     def __init__(self, capacity):
         self.memory = deque([], maxlen=capacity)
