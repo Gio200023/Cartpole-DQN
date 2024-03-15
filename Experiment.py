@@ -22,8 +22,10 @@ def average_over_repetitions(n_repetitions, n_timesteps, max_episode_length, lea
         
         returns, timesteps = dqn(n_timesteps, learning_rate, gamma, policy, epsilon, temp, eval_interval)
         returns_over_repetitions.append(returns)
+        print("I have returned: ", returns)
         
     print('Running one setting takes {} minutes'.format((time.time()-now)/60))
+    print("I have this returnsssss: ",returns_over_repetitions)
     learning_curve = np.mean(np.array(returns_over_repetitions),axis=0) # average over repetitions  
     if smoothing_window is not None: 
         learning_curve = smooth(learning_curve,smoothing_window) # additional smoothing
@@ -32,11 +34,11 @@ def average_over_repetitions(n_repetitions, n_timesteps, max_episode_length, lea
 def experiment():
     ####### Settings
     # Experiment      
-    n_repetitions = 1
+    n_repetitions = 2
     smoothing_window = 9 # Must be an odd number. Use 'None' to switch smoothing off!
         
     # MDP    
-    n_timesteps = 101 # Set one extra timestep to ensure evaluation at start and end
+    n_timesteps = 1001 # Set one extra timestep to ensure evaluation at start and end
     eval_interval = 500
     max_episode_length = 100
     gamma = 0.95

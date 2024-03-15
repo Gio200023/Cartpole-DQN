@@ -2,6 +2,7 @@ import gym
 import time
 import numpy as np
 from Agent import DQNAgent
+import sys
 
 # PARAMETERS 
 num_iterations = 1000 
@@ -19,8 +20,6 @@ learning_rate = 1e-3
 gamma = 0.99
 epsilon = 0.05
 temp = 0.05
-eval_timesteps = []
-eval_returns = []
 
 def dqn(n_timesteps=num_iterations, learning_rate=learning_rate, gamma=gamma, policy="egreedy", epsilon=epsilon, temp=temp, eval_interval=eval_interval):
     # Entities
@@ -35,32 +34,35 @@ def dqn(n_timesteps=num_iterations, learning_rate=learning_rate, gamma=gamma, po
                         temp=temp)
     observation, info = env.reset(seed=42) 
 
-    for iteration in range(n_timesteps):
+    eval_timesteps = []
+    eval_returns = []
+
+    iteration = 0
+    while iteration <= n_timesteps:
         state, info = env.reset()
         # state = np.reshape(state, [1, dqn_agent_and_model.n_states])
-        done = False
+        terminated = False
         
-        while not done:
-            # Seleziona l'azione
+        while not terminated:
             action = dqn_agent_and_model.select_action(state,epsilon=epsilon, temp=temp)
             observation, reward, terminated, truncated, info = env.step(action)
-            next_state = np.reshape(observation, [1, dqn_agent_and_model.n_states])
-            dqn_agent_and_model.remember(state, action, reward, next_state, terminated)
+            observation = np.reshape(observation, [1, dqn_agent_and_model.n_states])
+            dqn_agent_and_model.remember(state, action, reward, observation, terminated)
 
             if len(dqn_agent_and_model.replay_buffer) >= batch_size:
                 dqn_agent_and_model.replay(batch_size)
-            
-            if terminated:
-                break
-            state = next_state
-            
+            state = observation            
             if iteration % eval_interval == 0:
                 eval_timesteps.append(iteration)
                 eval_returns.append(dqn_agent_and_model.evaluate(env_eval, n_eval_episodes=num_eval_episodes, epsilon = epsilon, temp = temp))
-                print(f"Average return at iteration {iteration}: {eval_returns[-1]}")
+                print(f"Average return at iteration {iteration}: {eval_returns}")
+            iteration+=1
+            
+            if terminated:
+                break
+            
                 
     env.close()
     
     return np.array(eval_returns), np.array(eval_timesteps) 
-
 

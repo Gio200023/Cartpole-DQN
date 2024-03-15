@@ -45,6 +45,9 @@ class DQNAgent(nn.Module):
         self.layer1 = nn.Linear(self.n_states, 128)
         self.layer2 = nn.Linear(128, 128)
         self.layer3 = nn.Linear(128, self.n_actions)
+        self.device = "cpu"
+        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.to(self.device)
         
         #Hypertuning
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
@@ -53,6 +56,8 @@ class DQNAgent(nn.Module):
     def select_action(self, s, policy='egreedy', epsilon=None, temp=None):
         state = np.array(s)
         state = torch.from_numpy(state).float().unsqueeze(0)
+        
+        state = state.to(self.device)
         
         # Epsilon-greedy policy
         if np.random.rand() < epsilon:
@@ -70,12 +75,6 @@ class DQNAgent(nn.Module):
     def remember(self, state, action, reward, next_state, done):
         self.replay_buffer.push(state, action, reward, next_state, done)
 
-    def act(self, state):
-        if np.random.rand() <= self.epsilon:
-            return random.randrange(self.action_size)
-        act_values = self.model.predict(state)
-        return np.argmax(act_values[0])
-
     def replay(self, batch_size):
         if len(self.replay_buffer) < batch_size:
             return
@@ -84,13 +83,15 @@ class DQNAgent(nn.Module):
         # Flatten and stack the states for batch processing
         states = np.array([s.flatten() for s, a, r, ns, d in minibatch])
         next_states = np.array([ns.flatten() for s, a, r, ns, d in minibatch])
-        actions = torch.tensor([a for s, a, r, ns, d in minibatch])
-        rewards = torch.tensor([r for s, a, r, ns, d in minibatch], dtype=torch.float32)
-        dones = torch.tensor([d for s, a, r, ns, d in minibatch], dtype=torch.float32)
+        actions = torch.tensor([a for s, a, r, ns, d in minibatch], device=self.device)
+        rewards = torch.tensor([r for s, a, r, ns, d in minibatch], device=self.device,dtype=torch.float32)
+        dones = torch.tensor([d for s, a, r, ns, d in minibatch], device=self.device,dtype=torch.float32)
 
         # Convert to PyTorch tensors
         states = torch.from_numpy(states).float()
         next_states = torch.from_numpy(next_states).float()
+        states = states.to(self.device)
+        next_states = next_states.to(self.device)
         
         # Forward pass
         current_q_values = self(states)
