@@ -45,8 +45,8 @@ class DQNAgent(nn.Module):
         self.layer1 = nn.Linear(self.n_states, 128)
         self.layer2 = nn.Linear(128, 128)
         self.layer3 = nn.Linear(128, self.n_actions)
-        self.device = "cpu"
-        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.device = "cpu"
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.to(self.device)
         
         #Hypertuning

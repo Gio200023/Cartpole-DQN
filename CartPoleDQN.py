@@ -58,6 +58,8 @@ def dqn(n_timesteps=num_iterations, learning_rate=learning_rate, gamma=gamma, po
                 print(f"Average return at iteration {iteration}: {eval_returns}")
             iteration+=1
             
+            if n_timesteps == 0:
+                break
             if terminated:
                 break
             
