@@ -14,8 +14,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+import torch.nn.init as init
 from ReplayBuffer import ReplayMemory
-# from tensorflow.keras import models, layers, optimizers
+import time
 
 class DQNAgent(nn.Module):
     """
@@ -28,7 +29,7 @@ class DQNAgent(nn.Module):
     Returns:
         int: best action according to the policy
     """
-    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon=0.05, epsilon_decay=0.995, epsilon_min=0.01, temp=0.05):
+    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon=0.05, epsilon_decay=0.995, epsilon_min=0.01, temp=0.05, target_update=50):
         super(DQNAgent, self).__init__()
         self.n_states = n_states
         self.n_actions = n_actions
@@ -39,12 +40,13 @@ class DQNAgent(nn.Module):
         self.epsilon_decay = epsilon_decay
         self.learning_rate = learning_rate
         self.Q_sa = np.zeros((n_states,n_actions))
+        self._current_iteration = 0
         
         
         # Network
-        self.layer1 = nn.Linear(self.n_states, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, self.n_actions)
+        self.layer1 = nn.Linear(self.n_states, 64)
+        self.layer2 = nn.Linear(64, 64)
+        self.layer3 = nn.Linear(64, self.n_actions)
         # self.device = "cpu"
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.to(self.device)
@@ -53,11 +55,47 @@ class DQNAgent(nn.Module):
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
         self.criterion = nn.MSELoss()
         
+        # Target Network
+        self.target_layer1 = nn.Linear(self.n_states, 64)
+        self.target_layer2 = nn.Linear(64, 64)
+        self.target_layer3 = nn.Linear(64, self.n_actions)
+        
+        # Initialization of the networks weights
+        init.xavier_uniform_(self.layer1.weight)
+        self.layer1.bias.data.fill_(0.0)
+        init.xavier_uniform_(self.layer2.weight)
+        self.layer2.bias.data.fill_(0.0)
+        init.xavier_uniform_(self.layer3.weight)
+        self.layer3.bias.data.fill_(0.0)
+
+        init.xavier_uniform_(self.target_layer1.weight)
+        self.target_layer1.bias.data.fill_(0.0)
+        init.xavier_uniform_(self.target_layer2.weight)
+        self.target_layer2.bias.data.fill_(0.0)
+        init.xavier_uniform_(self.target_layer3.weight)
+        self.target_layer3.bias.data.fill_(0.0)
+
+        self.target_update = target_update
+        self.update_target_network()  # Initialize target network to be the same as the main network
+        self.to(self.device)
+        
+        # Ensure the target network is not updated during backpropagation
+        for param in self.target_layer1.parameters():
+            param.requires_grad = False
+        for param in self.target_layer2.parameters():
+            param.requires_grad = False
+        for param in self.target_layer3.parameters():
+            param.requires_grad = False
+        
     def select_action(self, s, policy='egreedy', epsilon=None, temp=None):
         state = np.array(s)
         state = torch.from_numpy(state).float().unsqueeze(0)
         
         state = state.to(self.device)
+        
+        if policy == "greedy":
+            q_values = self.forward(state)
+            return q_values.argmax().item()
         
         # Epsilon-greedy policy
         if np.random.rand() < epsilon:
@@ -67,10 +105,23 @@ class DQNAgent(nn.Module):
                 q_values = self.forward(state)
                 return q_values.argmax().item()  # Return the action with the highest Q-value
 
-    def forward(self, x):
-        x = F.relu(self.layer1(x))
-        x = F.relu(self.layer2(x))
-        return self.layer3(x)
+    def update_target_network(self):
+        # Helper method to update the target network
+        self.target_layer1.load_state_dict(self.layer1.state_dict())
+        self.target_layer2.load_state_dict(self.layer2.state_dict())
+        self.target_layer3.load_state_dict(self.layer3.state_dict())
+    
+    def forward(self, x, target=False):
+        # If target is True, use the target network
+        if target:
+            x = F.relu(self.target_layer1(x))
+            x = F.relu(self.target_layer2(x))
+            x = self.target_layer3(x)
+        else:
+            x = F.relu(self.layer1(x))
+            x = F.relu(self.layer2(x))
+            x = self.layer3(x)
+        return x
 
     def remember(self, state, action, reward, next_state, done):
         self.replay_buffer.push(state, action, reward, next_state, done)
@@ -80,34 +131,44 @@ class DQNAgent(nn.Module):
             return
         
         minibatch = random.sample(self.replay_buffer.memory, batch_size)
-        # Flatten and stack the states for batch processing
-        states = np.array([s.flatten() for s, a, r, ns, d in minibatch])
-        next_states = np.array([ns.flatten() for s, a, r, ns, d in minibatch])
-        actions = torch.tensor([a for s, a, r, ns, d in minibatch], device=self.device)
-        rewards = torch.tensor([r for s, a, r, ns, d in minibatch], device=self.device,dtype=torch.float32)
-        dones = torch.tensor([d for s, a, r, ns, d in minibatch], device=self.device,dtype=torch.float32)
 
-        # Convert to PyTorch tensors
-        states = torch.from_numpy(states).float()
-        next_states = torch.from_numpy(next_states).float()
-        states = states.to(self.device)
-        next_states = next_states.to(self.device)
+        # Convert to numpy arrays first for efficiency
+        states_np = np.array([transition.state.squeeze() for transition in minibatch])
+        next_states_np = np.array([transition.next_state.squeeze() for transition in minibatch])
+        actions_np = np.array([transition.action for transition in minibatch])
+        rewards_np = np.array([transition.reward for transition in minibatch])
+        dones_np = np.array([transition.done for transition in minibatch])
         
-        # Forward pass
-        current_q_values = self(states)
-        next_q_values = self(next_states).detach()
 
-        # Compute the target
-        max_next_q_values = next_q_values.max(1)[0]  # Get max Q value for next states
-        target_q_values = current_q_values.clone()
-        for idx in range(batch_size):
-            target_q_values[idx, actions[idx]] = rewards[idx] + self.gamma * max_next_q_values[idx] * (1 - dones[idx])
-            
-        # Perform backward pass and optimization
-        self.optimizer.zero_grad()  # Clear gradients
-        loss = self.criterion(current_q_values, target_q_values)  # Compute loss
-        loss.backward()  # Backpropagation
-        self.optimizer.step()  # Update weights
+        # Now convert to PyTorch tensors
+        states = torch.from_numpy(states_np).float().to(self.device)
+        next_states = torch.from_numpy(next_states_np).float().to(self.device)
+        actions = torch.from_numpy(actions_np).long().to(self.device).unsqueeze(-1)  # Actions are usually of type long
+        rewards = torch.from_numpy(rewards_np).float().to(self.device)
+        dones = torch.from_numpy(dones_np).float().to(self.device)
+        
+
+        # Compute the target Q values
+        current_q_values = self(states).gather(1, actions)
+        next_q_values = self(next_states, target=True).detach().max(1)[0].unsqueeze(-1)
+        targets = rewards.unsqueeze(-1) + (1 - dones.unsqueeze(-1)) * self.gamma * next_q_values
+
+        # Compute loss
+        loss = self.criterion(current_q_values, targets)
+
+        # Optimize the model
+        self.optimizer.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0) 
+        self.optimizer.step()
+        if self._current_iteration % 500 == 0:
+            print("iteration: "+str(self._current_iteration) + " loss: " + str(loss)+ " ")
+
+        # Update the target network
+        if self._current_iteration % self.target_update == 0:
+            self.update_target_network()
+
+        self._current_iteration += 1
         
     def evaluate(self,eval_env,n_eval_episodes=30, max_episode_length=100, epsilon = 0.05,temp = 0.05):
         returns = []  # list to store the reward per episode
@@ -115,7 +176,7 @@ class DQNAgent(nn.Module):
             s , info= eval_env.reset()
             R_ep = 0
             for t in range(max_episode_length):
-                a = self.select_action(s, 'greedy', epsilon=epsilon, temp=temp)
+                a = self.select_action(s=s, policy='greedy', epsilon=epsilon, temp=temp)
                 observation, reward, terminated, truncated, info = eval_env.step(a)
                 R_ep += reward
                 if terminated:
@@ -125,60 +186,3 @@ class DQNAgent(nn.Module):
             returns.append(R_ep)
         mean_return = np.mean(returns)
         return mean_return
-
-
-# class DQNAgent:
-
-#     def __init__(self, n_states, n_actions, learning_rate, gamma):
-#         self.n_states = n_states
-#         self.n_actions = n_actions
-#         self.learning_rate = learning_rate
-#         self.gamma = gamma
-#         self.Q_sa = np.zeros((n_states,n_actions))
-        
-#     def select_action(self, s, policy='egreedy', epsilon=None, temp=None):
-#         if policy == 'greedy':
-#             '''Return greedy policy'''
-#             return argmax(self.Q_sa[s, :])
-#         elif policy == 'egreedy':
-#             '''Return e-greedy policy'''
-#             if epsilon is None:
-#                 raise KeyError("Provide an epsilon")
-            
-#             if np.random.rand() < epsilon:
-#                 return np.random.randint(self.n_actions)
-#             else:
-#                 greedy_action = np.argmax(self.Q_sa[s, :])
-#                 probabilities = np.ones(self.n_actions) * (epsilon / self.n_actions)
-#                 probabilities[greedy_action] += (1.0 - epsilon)
-#                 return np.random.choice(np.arange(self.n_actions), p=probabilities)
-            
-#         elif policy == 'softmax':
-#             '''Return Boltzmann (softmax) policy'''
-#             if temp is None:
-#                 raise KeyError("Provide a temperature")
-            
-#             q_values = self.Q_sa[s, :]
-#             a = np.argmax(softmax(q_values,temp=temp))
-#             return a
-            
-#     def update(self):
-#         raise NotImplementedError('For each agent you need to implement its specific back-up method') # Leave this and overwrite in subclasses in other files
-
-
-#     def evaluate(self,eval_env,n_eval_episodes=30, max_episode_length=100):
-#         returns = []  # list to store the reward per episode
-#         for i in range(n_eval_episodes):
-#             s = eval_env.reset()
-#             R_ep = 0
-#             for t in range(max_episode_length):
-#                 a = self.select_action(s, 'greedy')
-#                 s_prime, r, done = eval_env.step(a)
-#                 R_ep += r
-#                 if done:
-#                     break
-#                 else:
-#                     s = s_prime
-#             returns.append(R_ep)
-#         mean_return = np.mean(returns)
-#         return mean_return
