@@ -87,23 +87,49 @@ class DQNAgent(nn.Module):
         for param in self.target_layer3.parameters():
             param.requires_grad = False
         
+    # def select_action(self, s, policy='egreedy', epsilon=None, temp=None):
+    #     state = np.array(s)
+    #     state = torch.from_numpy(state).float().unsqueeze(0)
+        
+    #     state = state.to(self.device)
+        
+    #     if policy == "greedy":
+    #         q_values = self.forward(state)
+    #         return q_values.argmax().item()
+        
+    #     # Epsilon-greedy policy
+    #     if np.random.rand() < epsilon:
+    #         return np.random.randint(self.n_actions)
+    #     else:
+    #         with torch.no_grad():
+    #             q_values = self.forward(state)
+    #             return q_values.argmax().item()  # Return the action with the highest Q-value
     def select_action(self, s, policy='egreedy', epsilon=None, temp=None):
-        state = np.array(s)
-        state = torch.from_numpy(state).float().unsqueeze(0)
+        state = torch.from_numpy(np.array(s)).float().unsqueeze(0).to(self.device)
+        with torch.no_grad():
+            q_values = self(state)
+
+        ###
+        if policy == 'softmax':
+            # Softmax policy: Actions are selected based on softmax probability distribution
+            if temp is None:
+                raise KeyError("Provide a temperature")
+            probabilities = F.softmax(q_values / self.temp, dim=-1).cpu().numpy().squeeze()
+            action = np.random.choice(self.n_actions, p=probabilities)
+            return action
+        ###
         
-        state = state.to(self.device)
-        
-        if policy == "greedy":
-            q_values = self.forward(state)
-            return q_values.argmax().item()
-        
-        # Epsilon-greedy policy
-        if np.random.rand() < epsilon:
-            return np.random.randint(self.n_actions)
+        elif policy == 'egreedy':
+            # Epsilon-greedy policy: Random action with probability epsilon, else best action
+            if epsilon is None:
+                raise KeyError("Provide an epsilon")
+            if np.random.rand() < epsilon:
+                return np.random.randint(self.n_actions)
+            else:
+                return q_values.argmax().item()
         else:
-            with torch.no_grad():
-                q_values = self.forward(state)
-                return q_values.argmax().item()  # Return the action with the highest Q-value
+            # Default to greedy if policy is not recognized
+            return q_values.argmax().item()
 
     def update_target_network(self):
         # Helper method to update the target network
@@ -152,7 +178,6 @@ class DQNAgent(nn.Module):
         current_q_values = self(states).gather(1, actions)
         next_q_values = self(next_states, target=True).detach().max(1)[0].unsqueeze(-1)
         targets = rewards.unsqueeze(-1) + (1 - dones.unsqueeze(-1)) * self.gamma * next_q_values
-
         # Compute loss
         loss = self.criterion(current_q_values, targets)
 
@@ -162,8 +187,12 @@ class DQNAgent(nn.Module):
         torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0) 
         self.optimizer.step()
         if self._current_iteration % 500 == 0:
+            # print("current_q_values: ",current_q_values)
             print("iteration: "+str(self._current_iteration) + " loss: " + str(loss)+ " ")
-
+            # print("next_q_values   : ",next_q_values)
+            # print("targets         : ",targets)
+            # print(rewards)
+            # time.sleep(2)
         # Update the target network
         if self._current_iteration % self.target_update == 0:
             self.update_target_network()
