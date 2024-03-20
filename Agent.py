@@ -29,13 +29,15 @@ class DQNAgent(nn.Module):
     Returns:
         int: best action according to the policy
     """
-    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon=0.05, epsilon_decay=0.995, epsilon_min=0.01, temp=0.05, target_update=50):
+    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon=0.05, epsilon_decay=0.995, epsilon_min=0.01, temp=0.05, temp_decay = 0.995, temp_min = 0.01,target_update=50):
         super(DQNAgent, self).__init__()
         self.n_states = n_states
         self.n_actions = n_actions
         self.replay_buffer = ReplayMemory(10000000)
         self.gamma = gamma  
         self.temp = temp
+        self.temp_decay = temp_decay
+        self.temp_min = temp_min
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min
         self.epsilon_decay = epsilon_decay
@@ -114,10 +116,12 @@ class DQNAgent(nn.Module):
         self._current_iteration += 1
 
         if policy == 'softmax':
+            # Softmax policy: Actions are selected based on softmax probability distribution
             if self.temp is None:
                 raise KeyError("Provide a temperature")
             probabilities = F.softmax(q_values / self.temp, dim=-1).cpu().numpy().squeeze()
             action = np.random.choice(self.n_actions, p=probabilities)
+            self.temp = max(self.temp_min, self.temp * self.temp_decay)
             return action
 
         elif policy == 'egreedy':
