@@ -33,8 +33,9 @@ class DQNAgent(nn.Module):
         super(DQNAgent, self).__init__()
         self.n_states = n_states
         self.n_actions = n_actions
-        self.replay_buffer = ReplayMemory(10000)
+        self.replay_buffer = ReplayMemory(10000000)
         self.gamma = gamma  
+        self.temp = temp
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min
         self.epsilon_decay = epsilon_decay
@@ -44,9 +45,9 @@ class DQNAgent(nn.Module):
         
         
         # Network
-        self.layer1 = nn.Linear(self.n_states, 64)
-        self.layer2 = nn.Linear(64, 64)
-        self.layer3 = nn.Linear(64, self.n_actions)
+        self.layer1 = nn.Linear(self.n_states, 128)
+        self.layer2 = nn.Linear(128, 128)
+        self.layer3 = nn.Linear(128, self.n_actions)
         # self.device = "cpu"
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.to(self.device)
@@ -56,9 +57,9 @@ class DQNAgent(nn.Module):
         self.criterion = nn.MSELoss()
         
         # Target Network
-        self.target_layer1 = nn.Linear(self.n_states, 64)
-        self.target_layer2 = nn.Linear(64, 64)
-        self.target_layer3 = nn.Linear(64, self.n_actions)
+        self.target_layer1 = nn.Linear(self.n_states, 128)
+        self.target_layer2 = nn.Linear(128, 128)
+        self.target_layer3 = nn.Linear(128, self.n_actions)
         
         # Initialization of the networks weights
         init.xavier_uniform_(self.layer1.weight)
@@ -104,31 +105,31 @@ class DQNAgent(nn.Module):
     #         with torch.no_grad():
     #             q_values = self.forward(state)
     #             return q_values.argmax().item()  # Return the action with the highest Q-value
-    def select_action(self, s, policy='egreedy', epsilon=None, temp=None):
+    def select_action(self, s, policy='egreedy'):
         state = torch.from_numpy(np.array(s)).float().unsqueeze(0).to(self.device)
         with torch.no_grad():
             q_values = self(state)
 
-        ###
+        # Increment the iteration count each time an action is selected
+        self._current_iteration += 1
+
         if policy == 'softmax':
-            # Softmax policy: Actions are selected based on softmax probability distribution
-            if temp is None:
+            if self.temp is None:
                 raise KeyError("Provide a temperature")
             probabilities = F.softmax(q_values / self.temp, dim=-1).cpu().numpy().squeeze()
             action = np.random.choice(self.n_actions, p=probabilities)
             return action
-        ###
-        
+
         elif policy == 'egreedy':
-            # Epsilon-greedy policy: Random action with probability epsilon, else best action
-            if epsilon is None:
-                raise KeyError("Provide an epsilon")
-            if np.random.rand() < epsilon:
-                return np.random.randint(self.n_actions)
+            if np.random.rand() < self.epsilon:
+                action = np.random.randint(self.n_actions)
             else:
-                return q_values.argmax().item()
+                action = q_values.argmax().item()
+            # Epsilon decay
+            self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+            return action
+
         else:
-            # Default to greedy if policy is not recognized
             return q_values.argmax().item()
 
     def update_target_network(self):
@@ -153,9 +154,8 @@ class DQNAgent(nn.Module):
         self.replay_buffer.push(state, action, reward, next_state, done)
 
     def replay(self, batch_size):
-        if len(self.replay_buffer) < batch_size:
-            return
-        
+        # if len(self.replay_buffer) < batch_size:
+        #     return
         minibatch = random.sample(self.replay_buffer.memory, batch_size)
 
         # Convert to numpy arrays first for efficiency
@@ -184,7 +184,7 @@ class DQNAgent(nn.Module):
         # Optimize the model
         self.optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0) 
+        # torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0) 
         self.optimizer.step()
         if self._current_iteration % 500 == 0:
             # print("current_q_values: ",current_q_values)
@@ -196,8 +196,6 @@ class DQNAgent(nn.Module):
         # Update the target network
         if self._current_iteration % self.target_update == 0:
             self.update_target_network()
-
-        self._current_iteration += 1
         
     def evaluate(self,eval_env,n_eval_episodes=30, max_episode_length=100, epsilon = 0.05,temp = 0.05):
         returns = []  # list to store the reward per episode
@@ -205,7 +203,7 @@ class DQNAgent(nn.Module):
             s , info= eval_env.reset()
             R_ep = 0
             for t in range(max_episode_length):
-                a = self.select_action(s=s, policy='greedy', epsilon=epsilon, temp=temp)
+                a = self.select_action(s=s, policy='greedy')
                 observation, reward, terminated, truncated, info = eval_env.step(a)
                 R_ep += reward
                 if terminated:

@@ -4,7 +4,7 @@ import numpy as np
 from Agent import DQNAgent
 import sys
 
-# PARAMETERS 
+# PARAMETERS if not initialized from Experiment.py
 num_iterations = 1000 
 num_eval_episodes = 10 
 eval_interval = 1000  
@@ -21,18 +21,21 @@ gamma = 0.99
 epsilon = 0.05
 temp = 0.05
 
-def dqn(dqn_agent_and_model, n_timesteps=num_iterations, learning_rate=learning_rate, gamma=gamma, 
+def dqn(n_timesteps=num_iterations, learning_rate=learning_rate, gamma=gamma, 
         policy="egreedy", epsilon=epsilon, temp=temp, eval_interval=eval_interval, batch_size=batch_size):
     # Entities
     env = gym.make("CartPole-v1", max_episode_steps=1000)
     env_eval = gym.make("CartPole-v1")
-
-    # dqn_agent_and_model = DQNAgent(n_states=env.observation_space.shape[0], 
-    #                     n_actions=env.action_space.n, 
-    #                     learning_rate=learning_rate, 
-    #                     gamma=gamma,
-    #                     epsilon=epsilon,
-    #                     temp=temp)
+    epsilon_decay = 0.995
+    epsilon_min = 0.05
+    dqn_agent_and_model = DQNAgent(n_states=4, 
+                        n_actions=2, 
+                        learning_rate=learning_rate, 
+                        gamma=gamma,
+                        epsilon=epsilon,
+                        epsilon_decay=epsilon_decay,
+                        epsilon_min=epsilon_min,
+                        temp=temp)
     observation, info = env.reset(seed=42) 
 
     eval_timesteps = []
@@ -44,12 +47,12 @@ def dqn(dqn_agent_and_model, n_timesteps=num_iterations, learning_rate=learning_
         # state = np.reshape(state, [1, dqn_agent_and_model.n_states])
         terminated = False
         while not terminated:
-            action = dqn_agent_and_model.select_action(state,policy=policy,epsilon=epsilon, temp=temp)
+            action = dqn_agent_and_model.select_action(state,policy=policy)
             observation, reward, terminated, truncated, info = env.step(action)
-            observation = np.reshape(observation, [1, dqn_agent_and_model.n_states])
+            # observation = np.reshape(observation, [1, dqn_agent_and_model.n_states])
             # reward = reward / 100
             dqn_agent_and_model.remember(state, action, reward, observation, terminated)
-            if len(dqn_agent_and_model.replay_buffer) >= batch_size:
+            if len(dqn_agent_and_model.replay_buffer) % batch_size == 0:
                 dqn_agent_and_model.replay(batch_size)
             state = observation            
             if iteration % eval_interval == 0:
@@ -59,11 +62,11 @@ def dqn(dqn_agent_and_model, n_timesteps=num_iterations, learning_rate=learning_
                 print("step: ",iteration)
             iteration+=1
             dqn_agent_and_model._current_iteration=iteration
-            if n_timesteps == 0:
+            if iteration >= n_timesteps:
                 break
             if terminated:
                 break
-                
+    dqn_agent_and_model.replay_buffer.clean()
     env.close()
     
     return np.array(eval_returns), np.array(eval_timesteps) 
