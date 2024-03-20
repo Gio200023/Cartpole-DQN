@@ -61,7 +61,7 @@ def experiment():
     
     Plot.add_curve(timesteps,learning_curve,label=r'$\epsilon$-greedy, $\epsilon $ = {}'.format(epsilon))
     
-    Plot.save('dqn_egreedy.png')
+    Plot.save('dqn_egreedy_SmoothL1loss.png')
 
 if __name__ == '__main__':
     experiment()

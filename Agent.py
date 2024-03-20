@@ -56,7 +56,7 @@ class DQNAgent(nn.Module):
         
         #Hypertuning
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
-        self.criterion = nn.MSELoss()
+        self.criterion = nn.SmoothL1Loss()
         
         # Target Network
         self.target_layer1 = nn.Linear(self.n_states, 128)
