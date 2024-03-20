@@ -128,12 +128,12 @@ class DQNAgent(nn.Module):
         # return self.layer3(x)
 
         if target:
-            x = F.relu(self.target_layer1(x))
-            x = F.relu(self.target_layer2(x))
+            x = F.tanh(self.target_layer1(x))
+            x = F.tanh(self.target_layer2(x))
             x = self.target_layer3(x)
         else:
-            x = F.relu(self.layer1(x))
-            x = F.relu(self.layer2(x))
+            x = F.tanh(self.layer1(x))
+            x = F.tanh(self.layer2(x))
             x = self.layer3(x)
         return x
 
