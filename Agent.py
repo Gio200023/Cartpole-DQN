@@ -29,7 +29,7 @@ class DQNAgent(nn.Module):
     Returns:
         int: best action according to the policy
     """
-    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon=0.05, epsilon_decay=0.995, epsilon_min=0.01, temp=0.05, temp_decay = 0.995, temp_min = 0.01,target_update=50):
+    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon=0.001, epsilon_decay=0.995, epsilon_min=0.01, temp=0.05, temp_decay = 0.995, temp_min = 0.01,target_update=50):
         super(DQNAgent, self).__init__()
         self.n_states = n_states
         self.n_actions = n_actions
@@ -145,12 +145,12 @@ class DQNAgent(nn.Module):
     def forward(self, x, target=False):
         # If target is True, use the target network
         if target:
-            x = F.elu(self.target_layer1(x))
-            x = F.elu(self.target_layer2(x))
+            x = F.relu(self.target_layer1(x))
+            x = F.relu(self.target_layer2(x))
             x = self.target_layer3(x)
         else:
-            x = F.elu(self.layer1(x))
-            x = F.elu(self.layer2(x))
+            x = F.relu(self.layer1(x))
+            x = F.relu(self.layer2(x))
             x = self.layer3(x)
         return x
 

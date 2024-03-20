@@ -47,7 +47,7 @@ def experiment():
     batch_size = 32
     
     policy = 'egreedy' # 'egreedy' or 'softmax' 
-    epsilon = 0.1
+    epsilon = 0.001
     epsilon_min = 0.05
     epsilon_decay =0.995
     temp = 0.1
@@ -61,7 +61,7 @@ def experiment():
     
     Plot.add_curve(timesteps,learning_curve,label=r'$\epsilon$-greedy, $\epsilon $ = {}'.format(epsilon))
     
-    Plot.save('dqn_egreedy_elu.png')
+    Plot.save('dqn_egreedy_epsilon0.001.png')
 
 if __name__ == '__main__':
     experiment()
