@@ -59,7 +59,7 @@ def experiment():
     
         Plot.add_curve(timesteps,learning_curve,label=r'$\epsilon$-greedy, $\epsilon $ = {}'.format(epsilon))
     
-    Plot.save('dqn_egreedy_tanh.png')
+    Plot.save('dqn_egreedy_elu.png')
 
 if __name__ == '__main__':
     experiment()
