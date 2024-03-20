@@ -38,7 +38,7 @@ def average_over_repetitions(n_repetitions, n_timesteps, max_episode_length, lea
 def experiment():
     ####### Settings
     n_repetitions = 20
-    smoothing_window = 9 # Must be an odd number. Use 'None' to switch smoothing off!
+    smoothing_window = 15 # Must be an odd number. Use 'None' to switch smoothing off!
         
     n_timesteps = 80001 # Set one extra timestep to ensure evaluation at start and end
     eval_interval = 500
@@ -47,7 +47,7 @@ def experiment():
     batch_size = 32
     
     policy = 'egreedy' # 'egreedy' or 'softmax' 
-    epsilon = 0.1
+    epsilon = 0.05
     epsilon_min = 0.05
     epsilon_decay =0.995
     temp = 0.1
@@ -61,7 +61,7 @@ def experiment():
     
     Plot.add_curve(timesteps,learning_curve,label=r'$\epsilon$-greedy, $\epsilon $ = {}'.format(epsilon))
     
-    Plot.save('dqn_egreedy_SmoothL1loss.png')
+    Plot.save('dqn_egreedy_epsilon0.05.png')
 
 if __name__ == '__main__':
     experiment()
