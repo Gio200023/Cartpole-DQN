@@ -145,12 +145,12 @@ class DQNAgent(nn.Module):
     def forward(self, x, target=False):
         # If target is True, use the target network
         if target:
-            x = F.tanh(self.target_layer1(x))
-            x = F.tanh(self.target_layer2(x))
+            x = F.elu(self.target_layer1(x))
+            x = F.elu(self.target_layer2(x))
             x = self.target_layer3(x)
         else:
-            x = F.tanh(self.layer1(x))
-            x = F.tanh(self.layer2(x))
+            x = F.elu(self.layer1(x))
+            x = F.elu(self.layer2(x))
             x = self.layer3(x)
         return x
 
