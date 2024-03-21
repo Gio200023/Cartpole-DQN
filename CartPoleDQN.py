@@ -52,7 +52,7 @@ def dqn(n_timesteps=num_iterations, learning_rate=learning_rate, gamma=gamma,
             # observation = np.reshape(observation, [1, dqn_agent_and_model.n_states])
             # reward = reward / 100
             dqn_agent_and_model.remember(state, action, reward, observation, terminated)
-            if len(dqn_agent_and_model.replay_buffer) % batch_size == 0:
+            if len(dqn_agent_and_model.replay_buffer) > batch_size:
                 dqn_agent_and_model.replay(batch_size)
             state = observation            
             if iteration % eval_interval == 0:
