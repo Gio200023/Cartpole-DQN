@@ -47,7 +47,7 @@ class DQNAgent(nn.Module):
         self.target_update = target_update
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
+        print(self.device)
         # Network
         self.layer1 = nn.Linear(self.n_states, 64)  
         self.layer2 = nn.Linear(64, 64)  
@@ -161,7 +161,7 @@ class DQNAgent(nn.Module):
         # Compute the target Q values
         current_q_values = self(states).gather(1, actions)
         # Target true if using target network, target false for not use it.
-        next_q_values = self(next_states, target=True).detach().max(1)[0].unsqueeze(-1)
+        next_q_values = self(next_states, target=False).detach().max(1)[0].unsqueeze(-1)
         targets = rewards.unsqueeze(-1) + (1 - dones.unsqueeze(-1)) * self.gamma * next_q_values
         
         # Compute loss
