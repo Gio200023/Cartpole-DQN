@@ -19,11 +19,11 @@ def average_over_repetitions(n_repetitions, n_timesteps, max_episode_length, use
         returns, timesteps = dqn(n_timesteps, use_replay_buffer, learning_rate, gamma, policy, epsilon, temp,eval_interval,batch_size=batch_size)
         returns_over_repetitions.append(returns)
         print("Done nr: ", rep)
-    print(returns_over_repetitions)
+
     print('Running one setting takes {} minutes'.format((time.time()-now)/60))
-    learning_curve = np.mean(np.array(returns_over_repetitions),axis=0) # average over repetitions  
-    # if smoothing_window is not None: 
-    #     learning_curve = smooth(learning_curve,smoothing_window) # additional smoothing
+    learning_curve = np.mean(np.array(returns_over_repetitions),axis=0) # average over repetitions
+    if smoothing_window is not None: 
+        learning_curve = smooth(learning_curve,smoothing_window) # additional smoothing
     return learning_curve, timesteps  
 
 def experiment():
