@@ -46,7 +46,7 @@ def experiment():
     gamma = 0.99
     batch_size = 32
     
-    policy = 'egreedy' # 'egreedy' or 'softmax' 
+    policies = ['softmax','egreedy'] # 'egreedy' or 'softmax' 
     epsilon = 0.1
     epsilon_min = 0.05
     epsilon_decay =0.995
@@ -58,12 +58,13 @@ def experiment():
     
     Plot = LearningCurvePlot(title = r'$\epsilon$-greedy')    
     Plot.set_ylim(0, 600) 
-    learning_curve, timesteps = average_over_repetitions(n_repetitions=n_repetitions, n_timesteps=n_timesteps, max_episode_length=max_episode_length, learning_rate=learning_rate, 
+    for policy in policies:
+        learning_curve, timesteps = average_over_repetitions(n_repetitions=n_repetitions, n_timesteps=n_timesteps, max_episode_length=max_episode_length, learning_rate=learning_rate, 
                                           gamma=gamma, policy=policy, epsilon=epsilon, epsilon_decay=epsilon_decay , epsilon_min=epsilon_min, temp=temp, temp_min=temp_min, temp_decay=temp_decay, smoothing_window=smoothing_window, eval_interval=eval_interval,batch_size=batch_size)
     
-    Plot.add_curve(timesteps,learning_curve,label=r'$\epsilon$-greedy, $\epsilon $ = {}'.format(epsilon))
+        Plot.add_curve(timesteps,learning_curve,label=r'$\epsilon$-greedy, $\epsilon $ = {}'.format(epsilon))
     
-    Plot.save('dqn_egreedy.png')
+    Plot.save('dqn_softmax.png')
 
 if __name__ == '__main__':
     experiment()
