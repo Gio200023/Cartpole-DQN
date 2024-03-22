@@ -47,9 +47,14 @@ class DQNAgent(nn.Module):
         
         
         # Network
-        self.layer1 = nn.Linear(self.n_states, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, self.n_actions)
+        # self.layer1 = nn.Linear(self.n_states, 128)
+        # self.layer2 = nn.Linear(128, 128)
+        # self.layer3 = nn.Linear(128, self.n_actions)
+        self.layer1 = nn.Linear(self.n_states, 64)  # Smaller first layer
+        # self.dropout1 = nn.Dropout(p=0.2)  # Dropout layer for regularization
+        self.layer2 = nn.Linear(64, 64)  # Second layer
+        self.layer3 = nn.Linear(64, self.n_actions)  # Output layer
+        
         # self.device = "cpu"
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.to(self.device)
@@ -59,9 +64,12 @@ class DQNAgent(nn.Module):
         self.criterion = nn.MSELoss()
         
         # Target Network
-        self.target_layer1 = nn.Linear(self.n_states, 128)
-        self.target_layer2 = nn.Linear(128, 128)
-        self.target_layer3 = nn.Linear(128, self.n_actions)
+        # self.target_layer1 = nn.Linear(self.n_states, 128)
+        # self.target_layer2 = nn.Linear(128, 128)
+        # self.target_layer3 = nn.Linear(128, self.n_actions)
+        self.target_layer1 = nn.Linear(self.n_states, 64)
+        self.target_layer2 = nn.Linear(64, 64)
+        self.target_layer3 = nn.Linear(64, self.n_actions)
         
         # Initialization of the networks weights
         init.xavier_uniform_(self.layer1.weight)
@@ -143,16 +151,20 @@ class DQNAgent(nn.Module):
         self.target_layer3.load_state_dict(self.layer3.state_dict())
     
     def forward(self, x, target=False):
-        # If target is True, use the target network
-        if target:
-            x = F.relu(self.target_layer1(x))
-            x = F.relu(self.target_layer2(x))
-            x = self.target_layer3(x)
-        else:
-            x = F.relu(self.layer1(x))
-            x = F.relu(self.layer2(x))
-            x = self.layer3(x)
-        return x
+        x = F.relu(self.layer1(x))
+        # x = self.dropout1(x)  # Apply dropout after activation
+        x = F.relu(self.layer2(x))
+        return self.layer3(x)
+        # # If target is True, use the target network
+        # if target:
+        #     x = F.relu(self.target_layer1(x))
+        #     x = F.relu(self.target_layer2(x))
+        #     x = self.target_layer3(x)
+        # else:
+        #     x = F.relu(self.layer1(x))
+        #     x = F.relu(self.layer2(x))
+        #     x = self.layer3(x)
+        # return x
 
     def remember(self, state, action, reward, next_state, done):
         self.replay_buffer.push(state, action, reward, next_state, done)
@@ -201,7 +213,7 @@ class DQNAgent(nn.Module):
         if self._current_iteration % self.target_update == 0:
             self.update_target_network()
         
-    def evaluate(self,eval_env,n_eval_episodes=30, max_episode_length=100, epsilon = 0.05,temp = 0.05):
+    def evaluate(self,eval_env,n_eval_episodes=30, max_episode_length=500, epsilon = 0.05,temp = 0.05):
         returns = []  # list to store the reward per episode
         for i in range(n_eval_episodes):
             s , info= eval_env.reset()

@@ -9,7 +9,7 @@ from Helper import LearningCurvePlot, smooth
 from Agent import DQNAgent
 
 def average_over_repetitions(n_repetitions, n_timesteps, max_episode_length, learning_rate, 
-                                          gamma, policy, epsilon, epsilon_decay, epsilon_min, temp, smoothing_window=None, eval_interval=500,batch_size=64):
+                                          gamma, policy, epsilon, epsilon_decay, epsilon_min, temp, temp_min, temp_decay, smoothing_window=None, eval_interval=500,batch_size=64):
 
     returns_over_repetitions = []
     now = time.time()
@@ -25,7 +25,7 @@ def average_over_repetitions(n_repetitions, n_timesteps, max_episode_length, lea
     
     for rep in range(n_repetitions): 
         
-        returns, timesteps = dqn(n_timesteps, learning_rate, gamma, policy, epsilon, temp, eval_interval)
+        returns, timesteps = dqn(n_timesteps, learning_rate, gamma, policy, epsilon, temp,eval_interval)
         returns_over_repetitions.append(returns)
         print("Done nr: ", rep)
     print(returns_over_repetitions)
@@ -40,7 +40,7 @@ def experiment():
     n_repetitions = 20
     smoothing_window = 9 # Must be an odd number. Use 'None' to switch smoothing off!
         
-    n_timesteps = 80001 # Set one extra timestep to ensure evaluation at start and end
+    n_timesteps = 10001 # Set one extra timestep to ensure evaluation at start and end
     eval_interval = 500
     max_episode_length = 100
     gamma = 0.99
@@ -51,13 +51,15 @@ def experiment():
     epsilon_min = 0.05
     epsilon_decay =0.995
     temp = 0.1
+    temp_min = 0.01
+    temp_decay = 0.995
     # Back-up & update
-    learning_rate = 0.001
+    learning_rate = 0.01
     
     Plot = LearningCurvePlot(title = r'$\epsilon$-greedy')    
-    Plot.set_ylim(0, 200) 
+    Plot.set_ylim(0, 600) 
     learning_curve, timesteps = average_over_repetitions(n_repetitions=n_repetitions, n_timesteps=n_timesteps, max_episode_length=max_episode_length, learning_rate=learning_rate, 
-                                          gamma=gamma, policy=policy, epsilon=epsilon, epsilon_decay=epsilon_decay , epsilon_min=epsilon_min, temp=temp, smoothing_window=smoothing_window, eval_interval=eval_interval,batch_size=batch_size)
+                                          gamma=gamma, policy=policy, epsilon=epsilon, epsilon_decay=epsilon_decay , epsilon_min=epsilon_min, temp=temp, temp_min=temp_min, temp_decay=temp_decay, smoothing_window=smoothing_window, eval_interval=eval_interval,batch_size=batch_size)
     
     Plot.add_curve(timesteps,learning_curve,label=r'$\epsilon$-greedy, $\epsilon $ = {}'.format(epsilon))
     
