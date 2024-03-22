@@ -160,6 +160,7 @@ class DQNAgent(nn.Module):
         
         # Compute the target Q values
         current_q_values = self(states).gather(1, actions)
+        # Target true if using target network, target false for not use it.
         next_q_values = self(next_states, target=True).detach().max(1)[0].unsqueeze(-1)
         targets = rewards.unsqueeze(-1) + (1 - dones.unsqueeze(-1)) * self.gamma * next_q_values
         
@@ -170,9 +171,6 @@ class DQNAgent(nn.Module):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-
-        if self._current_iteration % 500 == 0:
-            print("iteration: "+str(self._current_iteration) + " loss: " + str(loss)+ " ")
         
         # Update the target network
         if self._current_iteration % self.target_update == 0:
