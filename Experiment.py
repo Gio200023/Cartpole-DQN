@@ -52,7 +52,7 @@ def experiment():
     # Back-up & update
     learning_rate = 0.01
     
-    Plot = LearningCurvePlot(title = "DQN-ER")    
+    Plot = LearningCurvePlot(title = "DQN-ER-Target")    
     Plot.set_ylim(0, 600) 
     for policy in policies:
         learning_curve, timesteps = average_over_repetitions(n_repetitions=n_repetitions, n_timesteps=n_timesteps, max_episode_length=max_episode_length, use_replay_buffer = use_replay_buffer, learning_rate=learning_rate, 
