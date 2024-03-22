@@ -29,7 +29,7 @@ class DQNAgent(nn.Module):
     Returns:
         int: best action according to the policy
     """
-    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon=0.05, epsilon_decay=0.995, epsilon_min=0.01, temp=0.05, temp_decay = 0.995, temp_min = 0.01,target_update=50):
+    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon=0.001, epsilon_decay=0.995, epsilon_min=0.01, temp=0.05, temp_decay = 0.995, temp_min = 0.01,target_update=50):
         super(DQNAgent, self).__init__()
         self.n_states = n_states
         self.n_actions = n_actions
@@ -47,7 +47,7 @@ class DQNAgent(nn.Module):
         self.target_update = target_update
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
+        print(self.device)
         # Network
         self.layer1 = nn.Linear(self.n_states, 64)  
         self.layer2 = nn.Linear(64, 64)  
@@ -161,7 +161,7 @@ class DQNAgent(nn.Module):
         # Compute the target Q values
         current_q_values = self(states).gather(1, actions)
         # Target true if using target network, target false for not use it.
-        next_q_values = self(next_states, target=True).detach().max(1)[0].unsqueeze(-1)
+        next_q_values = self(next_states, target=False).detach().max(1)[0].unsqueeze(-1)
         targets = rewards.unsqueeze(-1) + (1 - dones.unsqueeze(-1)) * self.gamma * next_q_values
         
         # Compute loss

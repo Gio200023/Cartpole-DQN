@@ -42,8 +42,8 @@ def experiment():
     else:
         batch_size = 1
     
-    policies = ['softmax','egreedy'] # 'egreedy' or 'softmax' 
-    epsilon = 0.1
+    policies = ['egreedy', 'softmax'] 
+    epsilon = 0.001
     epsilon_min = 0.05
     epsilon_decay =0.995
     temp = 0.1
@@ -52,17 +52,18 @@ def experiment():
     # Back-up & update
     learning_rate = 0.01
     
-    Plot = LearningCurvePlot(title = "DQN-ER")    
+    Plot = LearningCurvePlot(title = "DQN-ER-Target")    
     Plot.set_ylim(0, 600) 
     for policy in policies:
         learning_curve, timesteps = average_over_repetitions(n_repetitions=n_repetitions, n_timesteps=n_timesteps, max_episode_length=max_episode_length, use_replay_buffer = use_replay_buffer, learning_rate=learning_rate, 
                                           gamma=gamma, policy=policy, epsilon=epsilon, epsilon_decay=epsilon_decay , epsilon_min=epsilon_min, temp=temp, temp_min=temp_min, temp_decay=temp_decay, smoothing_window=smoothing_window, eval_interval=eval_interval,batch_size=batch_size)
-        if policy == 'softmax':
-            Plot.add_curve(timesteps,learning_curve,label=(str(policy)+ ", temp= "+str(temp)))
-        elif policy == 'egreedy':
-            Plot.add_curve(timesteps,learning_curve,label=(str(policy)+ ", eps= "+str(temp)))
 
-    Plot.save('dqn_no_ER.png')
+        if policy == "softmax":
+            Plot.add_curve(timesteps,learning_curve,label="softmax, temp=" +str(temp))
+        elif policy == "egreedy":
+            Plot.add_curve(timesteps,learning_curve,label="egreedy, eps=" + str(epsilon))
+    
+    Plot.save('dqn_no_ER_no_Target.png')
 
 if __name__ == '__main__':
     experiment()
