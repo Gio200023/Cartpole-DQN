@@ -72,6 +72,7 @@ def dqn(n_timesteps=num_iterations, use_replay_buffer=True, learning_rate=learni
             if terminated:
                 break
     dqn_agent_and_model.replay_buffer.clean()
+    dqn_agent_and_model.update_target_network.__closure__()
     env.close()
     
     return np.array(eval_returns), np.array(eval_timesteps) 
