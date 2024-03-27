@@ -47,15 +47,15 @@ class DQNAgent(nn.Module):
         self.target_update = target_update
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(self.device)
+
         # Network
         self.layer1 = nn.Linear(self.n_states, 64)  
-        self.layer2 = nn.Linear(64, 64)  
+        # self.layer2 = nn.Linear(64, 64)  
         self.layer3 = nn.Linear(64, self.n_actions) 
         
         # Target Network
         self.target_layer1 = nn.Linear(self.n_states, 64)
-        self.target_layer2 = nn.Linear(64, 64)
+        # self.target_layer2 = nn.Linear(64, 64)
         self.target_layer3 = nn.Linear(64, self.n_actions)
         
         #Hypertuning
@@ -65,15 +65,15 @@ class DQNAgent(nn.Module):
         # Initialization of the networks weights
         init.xavier_uniform_(self.layer1.weight)
         self.layer1.bias.data.fill_(0.0)
-        init.xavier_uniform_(self.layer2.weight)
-        self.layer2.bias.data.fill_(0.0)
+        # init.xavier_uniform_(self.layer2.weight)
+        # self.layer2.bias.data.fill_(0.0)
         init.xavier_uniform_(self.layer3.weight)
         self.layer3.bias.data.fill_(0.0)
 
         init.xavier_uniform_(self.target_layer1.weight)
         self.target_layer1.bias.data.fill_(0.0)
-        init.xavier_uniform_(self.target_layer2.weight)
-        self.target_layer2.bias.data.fill_(0.0)
+        # init.xavier_uniform_(self.target_layer2.weight)
+        # self.target_layer2.bias.data.fill_(0.0)
         init.xavier_uniform_(self.target_layer3.weight)
         self.target_layer3.bias.data.fill_(0.0)
 
@@ -82,8 +82,8 @@ class DQNAgent(nn.Module):
         # Ensure the target network is not updated during backpropagation
         for param in self.target_layer1.parameters():
             param.requires_grad = False
-        for param in self.target_layer2.parameters():
-            param.requires_grad = False
+        # for param in self.target_layer2.parameters():
+        #     param.requires_grad = False
         for param in self.target_layer3.parameters():
             param.requires_grad = False
         
@@ -118,29 +118,29 @@ class DQNAgent(nn.Module):
     def update_target_network(self):
         # Helper method to update the target network
         self.target_layer1.load_state_dict(self.layer1.state_dict())
-        self.target_layer2.load_state_dict(self.layer2.state_dict())
+        # self.target_layer2.load_state_dict(self.layer2.state_dict())
         self.target_layer3.load_state_dict(self.layer3.state_dict())
     
     def forward(self, x, target=False):
         # x = F.relu(self.layer1(x))
         # # x = self.dropout1(x)  # Apply dropout after activation
         # x = F.relu(self.layer2(x))
-        # return self.layer3(x)
+        # return self.layer3(x)c
 
         if target:
             x = F.relu(self.target_layer1(x))
-            x = F.relu(self.target_layer2(x))
+            # x = F.relu(self.target_layer2(x))
             x = self.target_layer3(x)
         else:
             x = F.relu(self.layer1(x))
-            x = F.relu(self.layer2(x))
+            # x = F.relu(self.layer2(x))
             x = self.layer3(x)
         return x
 
     def remember(self, state, action, reward, next_state, done):
         self.replay_buffer.push(state, action, reward, next_state, done)
 
-    def replay(self, batch_size):
+    def replay(self, batch_size, use_target_network = True):
         
         minibatch = random.sample(self.replay_buffer.memory, batch_size)
 
@@ -161,7 +161,7 @@ class DQNAgent(nn.Module):
         # Compute the target Q values
         current_q_values = self(states).gather(1, actions)
         # Target true if using target network, target false for not use it.
-        next_q_values = self(next_states, target=False).detach().max(1)[0].unsqueeze(-1)
+        next_q_values = self(next_states, target=use_target_network).detach().max(1)[0].unsqueeze(-1)
         targets = rewards.unsqueeze(-1) + (1 - dones.unsqueeze(-1)) * self.gamma * next_q_values
         
         # Compute loss

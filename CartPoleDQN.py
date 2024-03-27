@@ -22,7 +22,7 @@ epsilon = 0.05
 temp = 0.05
 
 def dqn(n_timesteps=num_iterations, use_replay_buffer=True, learning_rate=learning_rate, gamma=gamma, 
-        policy="egreedy", epsilon=epsilon, temp=temp, eval_interval=eval_interval, batch_size=batch_size):
+        policy="egreedy", epsilon=epsilon, temp=temp, eval_interval=eval_interval, batch_size=batch_size, use_target_network = True):
     
     # Entities
     env = gym.make("CartPole-v1", max_episode_steps=1000)
@@ -57,7 +57,7 @@ def dqn(n_timesteps=num_iterations, use_replay_buffer=True, learning_rate=learni
                     dqn_agent_and_model.replay(batch_size)
             else:
                 dqn_agent_and_model.remember(state, action, reward, observation, terminated)
-                dqn_agent_and_model.replay(batch_size)        
+                dqn_agent_and_model.replay(batch_size,use_target_network=use_target_network)        
                 dqn_agent_and_model.replay_buffer.clean()
             state = observation            
             if iteration % eval_interval == 0:
@@ -70,7 +70,7 @@ def dqn(n_timesteps=num_iterations, use_replay_buffer=True, learning_rate=learni
                 break
             if terminated:
                 break
-    dqn_agent_and_model.replay_buffer.clean()
+    dqn_agent_and_model.replay_buffer.clean() 
     env.close()
     
     return np.array(eval_returns), np.array(eval_timesteps) 

@@ -3,20 +3,23 @@
 
 import numpy as np
 import time
+import argparse
+import sys
 
 from CartPoleDQN import dqn
 from Helper import LearningCurvePlot, smooth
 from Agent import DQNAgent
 
 def average_over_repetitions(n_repetitions, n_timesteps, max_episode_length, use_replay_buffer, learning_rate, 
-                                          gamma, policy, epsilon, epsilon_decay, epsilon_min, temp, temp_min, temp_decay, smoothing_window=None, eval_interval=500,batch_size=64):
+                                          gamma, policy, epsilon, epsilon_decay, epsilon_min, temp, temp_min, temp_decay, smoothing_window=None, eval_interval=500,batch_size=64,
+                                          use_target_network = True):
 
     returns_over_repetitions = []
     now = time.time()
     
     for rep in range(n_repetitions): 
         
-        returns, timesteps = dqn(n_timesteps, use_replay_buffer, learning_rate, gamma, policy, epsilon, temp,eval_interval,batch_size=batch_size)
+        returns, timesteps = dqn(n_timesteps, use_replay_buffer, learning_rate, gamma, policy, epsilon, temp,eval_interval,batch_size=batch_size, use_target_network = use_target_network)
         returns_over_repetitions.append(returns)
         print("Done nr: ", rep)
 
@@ -26,15 +29,37 @@ def average_over_repetitions(n_repetitions, n_timesteps, max_episode_length, use
         learning_curve = smooth(learning_curve,smoothing_window) # additional smoothing
     return learning_curve, timesteps  
 
-def experiment():
+def get_args():
+    parser = argparse.ArgumentParser(description="Experiment settings")
+    parser.add_argument('--no_er', action='store_true', help='Do not use replay buffer if flag is set')
+    parser.add_argument('--no_tn', action='store_true', help='Do not use target network if flag is set')
+    try:
+        args = parser.parse_args()
+    except argparse.ArgumentError as e:
+        print("Argument parsing error: ", e.message)
+        sys.exit(2)
+    except SystemExit:
+        # This can be triggered if unknown arguments are provided.
+        print("Incorrect usage")
+        print("Possible arguments are:")
+        print("--no_er: remove the Experience Replay")
+        print("--no_tn: remove the Target Network")
+        sys.exit(2)
+    return args
+
+def experiment(use_replay_buffer, use_target_network):
     ####### Settings
     n_repetitions = 20
     smoothing_window = 9 # Must be an odd number. Use 'None' to switch smoothing off!
-    use_replay_buffer = False
+    use_replay_buffer = not use_replay_buffer
+    use_target_network = not use_target_network
+
+    print("repl buf: ",use_replay_buffer)
+    print("use_tar: ",use_target_network)
         
     n_timesteps = 50001 # Set one extra timestep to ensure evaluation at start and end
     eval_interval = 500
-    max_episode_length = 100
+    max_episode_length = 500
     gamma = 0.99
     
     if use_replay_buffer:
@@ -50,21 +75,22 @@ def experiment():
     temp_min = 0.01
     temp_decay = 0.995
     # Back-up & update
-    learning_rate = 0.01
+    learning_rates = [0.01,0.001,0.1]
     
-    Plot = LearningCurvePlot(title = "DQN-ER-Target")    
-    Plot.set_ylim(0, 600) 
-    for policy in policies:
-        learning_curve, timesteps = average_over_repetitions(n_repetitions=n_repetitions, n_timesteps=n_timesteps, max_episode_length=max_episode_length, use_replay_buffer = use_replay_buffer, learning_rate=learning_rate, 
-                                          gamma=gamma, policy=policy, epsilon=epsilon, epsilon_decay=epsilon_decay , epsilon_min=epsilon_min, temp=temp, temp_min=temp_min, temp_decay=temp_decay, smoothing_window=smoothing_window, eval_interval=eval_interval,batch_size=batch_size)
-
-        if policy == "softmax":
-            Plot.add_curve(timesteps,learning_curve,label="softmax, temp=" +str(temp))
-        elif policy == "egreedy":
-            Plot.add_curve(timesteps,learning_curve,label="egreedy, eps=" + str(epsilon))
-    
-    Plot.save('dqn_no_ER_no_Target.png')
+    Plot = LearningCurvePlot(title = "DQN-ER")
+    Plot.set_ylim(0, 500) 
+    for learning_rate in learning_rates:
+        for policy in policies:
+            learning_curve, timesteps = average_over_repetitions(n_repetitions=n_repetitions, n_timesteps=n_timesteps, max_episode_length=max_episode_length, use_replay_buffer = use_replay_buffer, 
+                                                                 learning_rate=learning_rate, gamma=gamma, policy=policy, epsilon=epsilon, epsilon_decay=epsilon_decay , 
+                                                                 epsilon_min=epsilon_min, temp=temp, temp_min=temp_min, temp_decay=temp_decay, smoothing_window=smoothing_window, 
+                                                                 eval_interval=eval_interval,batch_size=batch_size, use_target_network = use_target_network)
+            
+            Plot.add_curve(timesteps,learning_curve,label=(str(learning_rate)+","+str(policy)))
+            
+    Plot.save('dqn.png')
 
 if __name__ == '__main__':
-    experiment()
+    args = get_args()
+    experiment(args.no_er, args.no_tn)
 
