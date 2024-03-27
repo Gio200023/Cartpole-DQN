@@ -67,8 +67,8 @@ def experiment(use_replay_buffer, use_target_network):
     else:
         batch_size = 1
     
-    policies = ['softmax','egreedy'] # 'egreedy' or 'softmax' 
-    epsilon = 0.1
+    policies = ['egreedy', 'softmax'] 
+    epsilon = 0.001
     epsilon_min = 0.05
     epsilon_decay =0.995
     temp = 0.1
