@@ -54,8 +54,8 @@ def experiment(use_replay_buffer, use_target_network):
     use_replay_buffer = not use_replay_buffer
     use_target_network = not use_target_network
 
-    print("repl buf: ",use_replay_buffer)
-    print("use_tar: ",use_target_network)
+    print("Use Replay Buffer: ",use_replay_buffer)
+    print("Use Target Network: ",use_target_network)
         
     n_timesteps = 50001 # Set one extra timestep to ensure evaluation at start and end
     eval_interval = 500
