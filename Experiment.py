@@ -90,7 +90,11 @@ def experiment(use_replay_buffer, use_target_network):
             
             Plot.add_curve(timesteps,learning_curve,label=(str(learning_rate)+","+str(policy)))
             
+<<<<<<< Updated upstream
     Plot.save('dqn_no_tn_no_er.png')
+=======
+    Plot.save('dqn_no_er_no_tn.png')
+>>>>>>> Stashed changes
 
 if __name__ == '__main__':
     args = get_args()
