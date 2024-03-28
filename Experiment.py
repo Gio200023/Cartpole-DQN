@@ -79,7 +79,7 @@ def experiment(use_replay_buffer, use_target_network):
     # Back-up & update
     learning_rates = [0.01,0.001,0.1]
     
-    Plot = LearningCurvePlot(title = "DQN-ER")
+    Plot = LearningCurvePlot(title = "DQN-TR-ER")
     Plot.set_ylim(0, 500) 
     for learning_rate in learning_rates:
         for policy in policies:
@@ -90,7 +90,7 @@ def experiment(use_replay_buffer, use_target_network):
             
             Plot.add_curve(timesteps,learning_curve,label=(str(learning_rate)+","+str(policy)))
             
-    Plot.save('dqn.png')
+    Plot.save('dqn_no_tr_no_er.png')
 
 if __name__ == '__main__':
     args = get_args()
