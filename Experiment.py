@@ -33,7 +33,7 @@ def get_args():
     parser = argparse.ArgumentParser(description="Experiment settings")
     parser.add_argument('--no_er', action='store_true', help='Do not use replay buffer if flag is set')
     parser.add_argument('--no_tn', action='store_true', help='Do not use target network if flag is set')
-    parser.add_argument('--no_er --no_tn', action='store_true', help='Do not use target network and replay buffer if flag is set')
+    
     try:
         args = parser.parse_args()
     except argparse.ArgumentError as e:
@@ -57,7 +57,6 @@ def experiment(use_replay_buffer, use_target_network):
 
     print("repl buf: ",use_replay_buffer)
     print("use_tar: ",use_target_network)
-    print("use_tar & repl buf: ",use_target_network, use_replay_buffer)
         
     n_timesteps = 50001 # Set one extra timestep to ensure evaluation at start and end
     eval_interval = 500
@@ -90,11 +89,7 @@ def experiment(use_replay_buffer, use_target_network):
             
             Plot.add_curve(timesteps,learning_curve,label=(str(learning_rate)+","+str(policy)))
             
-<<<<<<< Updated upstream
     Plot.save('dqn_no_tn_no_er.png')
-=======
-    Plot.save('dqn_no_er_no_tn.png')
->>>>>>> Stashed changes
 
 if __name__ == '__main__':
     args = get_args()
