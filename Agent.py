@@ -16,7 +16,6 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.nn.init as init
 from ReplayBuffer import ReplayMemory
-import time
 
 class DQNAgent(nn.Module):
     """

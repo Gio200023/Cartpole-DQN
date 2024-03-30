@@ -29,6 +29,7 @@ def dqn(n_timesteps=num_iterations, use_replay_buffer=True, learning_rate=learni
     env_eval = gym.make("CartPole-v1")
     epsilon_decay = 0.995
     epsilon_min = 0.05
+    
     dqn_agent_and_model = DQNAgent(n_states=4, 
                         n_actions=2, 
                         learning_rate=learning_rate, 
@@ -37,6 +38,7 @@ def dqn(n_timesteps=num_iterations, use_replay_buffer=True, learning_rate=learni
                         epsilon_decay=epsilon_decay,
                         epsilon_min=epsilon_min,
                         temp=temp)
+                        
     observation, info = env.reset(seed=42) 
 
     eval_timesteps = []
@@ -59,17 +61,22 @@ def dqn(n_timesteps=num_iterations, use_replay_buffer=True, learning_rate=learni
                 dqn_agent_and_model.remember(state, action, reward, observation, terminated)
                 dqn_agent_and_model.replay(batch_size,use_target_network=use_target_network)        
                 dqn_agent_and_model.replay_buffer.clean()
+                
             state = observation            
+            
             if iteration % eval_interval == 0:
                 eval_timesteps.append(iteration)
                 eval_returns.append(dqn_agent_and_model.evaluate(env_eval, n_eval_episodes=num_eval_episodes, epsilon = epsilon, temp = temp))
                 print("step: ",iteration)
+
             iteration+=1
             dqn_agent_and_model._current_iteration=iteration
+
             if iteration >= n_timesteps:
                 break
             if terminated:
                 break
+
     dqn_agent_and_model.replay_buffer.clean() 
     env.close()
     
