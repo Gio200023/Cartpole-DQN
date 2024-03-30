@@ -77,7 +77,7 @@ def experiment(use_replay_buffer, use_target_network):
     # Back-up & update
     learning_rates = [0.01,0.001,0.1]
     
-    Plot = LearningCurvePlot(title = "DQN-ER")
+    Plot = LearningCurvePlot(title = "DQN")
     Plot.set_ylim(0, 500) 
     for learning_rate in learning_rates:
         for policy in policies:
